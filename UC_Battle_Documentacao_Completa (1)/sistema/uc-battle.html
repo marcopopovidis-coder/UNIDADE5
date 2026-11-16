@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>U.C. Battle</title>
+<style>
+:root{--bg:#fff6dc;--fg:#1a1a1a;--card:#ffffff;--ac:#4b1f7a;--acfg:#ffffff;--bd:#6b5a3a;--mut:#4a4a4a;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171d;--fg:#f4f4f4;--card:#24242d;--ac:#d4b5ff;--acfg:#17171d;--bd:#9a9aa8;--mut:#cfcfd6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17171d;--fg:#f4f4f4;--card:#24242d;--ac:#d4b5ff;--acfg:#17171d;--bd:#9a9aa8;--mut:#cfcfd6;color-scheme:dark}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.5 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.7rem;margin:.2em 0 .4em}h2{font-size:1.2rem}
+h1:focus{outline:none}
+button{min-height:48px;padding:8px 16px;font:inherit;font-weight:600;border:2px solid var(--bd);border-radius:10px;background:var(--card);color:var(--fg);cursor:pointer}
+button.pri{background:var(--ac);color:var(--acfg);border-color:var(--ac)}
+button:focus-visible{outline:4px solid var(--fg);outline-offset:2px}
+button[disabled],button[aria-disabled="true"]{opacity:.6;cursor:not-allowed;border-style:dashed}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;list-style:none;padding:0;margin:12px 0}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.card{background:var(--card);border:2px solid var(--bd);border-radius:12px;padding:12px 16px;margin:12px 0}
+.hud{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:700}
+.alts{display:grid;grid-template-columns:1fr;gap:10px;margin:12px 0}
+.alts button{text-align:left}
+.msg{min-height:3em;font-weight:700}
+.bub{border:2px solid var(--bd);border-radius:14px;padding:10px 14px;margin:10px 0;background:var(--card)}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
+<script>
+const Q=[
+{l:1,q:`Qual símbolo representa um ator em um diagrama de casos de uso?`,o:[`Boneco palito`,`Elipse`,`Retângulo`,`Losango`],c:0,h:`Pense no desenho mais simples de uma pessoa.`,e:`Atores são desenhados como bonecos palito.`},
+{l:1,q:`Como um caso de uso é representado?`,o:[`Retângulo`,`Elipse com o nome dentro`,`Seta tracejada`,`Boneco palito`],c:1,h:`É uma forma arredondada.`,e:`Casos de uso são elipses com o nome dentro.`},
+{l:1,q:`O que o retângulo ao redor dos casos de uso delimita?`,o:[`Os atores`,`A fronteira do sistema`,`Os cenários`,`Os requisitos não funcionais`],c:1,h:`Ele separa o que é interno do que é externo.`,e:`O retângulo é o limite (fronteira) do sistema.`},
+{l:1,q:`Como deve ser nomeado um caso de uso?`,o:[`Com um substantivo solto`,`Com verbo no infinitivo e um objeto`,`Com o nome do ator`,`Com um número`],c:1,h:`Ele descreve uma ação do ator.`,e:`Exemplo: “Responder charada”.`},
+{l:1,q:`O que liga um ator a um caso de uso?`,o:[`Associação`,`Herança`,`Dependência`,`Agregação`],c:0,h:`É a linha simples entre os dois.`,e:`A associação indica a interação do ator com o caso de uso.`},
+{l:1,q:`Quem pode ser um ator?`,o:[`Somente pessoas`,`Qualquer papel externo que interage com o sistema`,`Somente sistemas externos`,`Somente os desenvolvedores`],c:1,h:`Pense em papéis, não em pessoas específicas.`,e:`Atores são papéis externos: pessoas, outros sistemas ou dispositivos.`},
+{l:2,q:`O que é um cenário de um caso de uso?`,o:[`Uma tela do sistema`,`Uma forma específica de o caso de uso acontecer`,`Um ator secundário`,`Um requisito não funcional`],c:1,h:`É uma história concreta de uso.`,e:`Cenários são as diferentes formas como o mesmo caso de uso pode acontecer.`},
+{l:2,q:`Quando usar <<include>>?`,o:[`Para comportamento opcional`,`Para comportamento obrigatório reutilizado`,`Para herança entre atores`,`Para ligar ator a caso de uso`],c:1,h:`Pense em algo que sempre acontece.`,e:`<<include>> representa um comportamento obrigatório e reutilizável.`},
+{l:2,q:`Qual relação representa comportamento opcional ou condicionado?`,o:[`<<include>>`,`<<extend>>`,`Associação`,`Generalização`],c:1,h:`Começa com “ex”.`,e:`<<extend>> adiciona comportamento opcional ou sujeito a condição.`},
+{l:2,q:`Em um <<include>>, para onde aponta a seta tracejada?`,o:[`Do incluído para o caso base`,`Do caso base para o incluído`,`Do ator para o caso`,`Entre atores`],c:1,h:`O caso base “chama” o incluído.`,e:`A seta parte do caso base e aponta para o caso incluído.`},
+{l:2,q:`Qual é um exemplo de generalização?`,o:[`Um caso que depende de outro`,`Gerente e Vendedor especializando o ator Funcionário`,`Dois atores sem relação`,`Uma nota UML`],c:1,h:`Pense em “é um tipo de”.`,e:`Generalização modela especialização: Gerente é um tipo de Funcionário.`},
+{l:2,q:`Qual a diferença entre fluxo principal e fluxo alternativo?`,o:[`O principal é o caminho típico de sucesso; o alternativo trata variações e exceções`,`São idênticos`,`O alternativo é sempre o mais frequente`,`O principal só trata erros`],c:0,h:`Um é o caminho feliz.`,e:`O fluxo principal é o caminho típico; os alternativos tratam variações e exceções.`},
+{l:3,q:`Em um <<extend>>, de onde parte a seta tracejada?`,o:[`Do caso base`,`Do caso de uso extensor, em direção ao caso base`,`Do ator`,`De uma nota`],c:1,h:`Quem estende aponta para quem é estendido.`,e:`No <<extend>> a seta parte do extensor e aponta para o caso base.`},
+{l:3,q:`“Validar senha” ocorre sempre que “Entrar” é executado. Que relação usar?`,o:[`Entrar <<include>> Validar senha`,`Validar senha <<include>> Entrar`,`Entrar <<extend>> Validar senha`,`Generalização`],c:0,h:`É obrigatório e reutilizável.`,e:`Como é sempre executado, o caso base inclui “Validar senha”.`},
+{l:3,q:`“Emitir comprovante” só ocorre se o cliente pedir. Qual modelagem?`,o:[`Emitir comprovante <<extend>> Finalizar compra`,`Finalizar compra <<include>> Emitir comprovante`,`Associação entre casos de uso`,`Emitir comprovante como ator`],c:0,h:`É opcional.`,e:`Comportamento opcional é modelado com <<extend>>.`},
+{l:3,q:`Por que uma regra de negócio, como “uma habilidade por batalha”, não deve virar ator?`,o:[`Atores são papéis externos; regras são condições e viram notas ou texto`,`Porque regras são opcionais`,`Porque atores são sempre pessoas`,`Porque a UML não permite notas`],c:0,h:`Ator é quem interage; regra é condição.`,e:`Regras de negócio entram como notas UML ou na especificação textual.`}
+];
+const BOOK={
+"Cenários":["Mestre, o senhor poderia falar sobre os cenários de um caso de uso?","Claro! Cenários são as diferentes formas como o mesmo caso de uso pode acontecer.","Por exemplo, “Responder charada” tem o cenário de acerto e o de erro."],
+"Diagrama":["Como é um diagrama de casos de uso?","Ele mostra atores (bonecos palito), casos de uso (elipses) e a fronteira do sistema (retângulo).","Linhas simples ligam cada ator aos casos de uso com que ele interage."],
+"Generalização":["O que é generalização?","É quando um elemento especializa outro, como Gerente e Vendedor, que são tipos de Funcionário.","O elemento especializado herda o comportamento do mais geral."],
+"Include e Extend":["Quando uso <<include>>?","Quando um comportamento é obrigatório e reutilizado por outros casos de uso.","E o <<extend>>?","Para comportamento opcional ou condicionado, como “Utilizar habilidade” durante a batalha."]
+};
+const PVV=[3,4,5,6,7];
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let cfg=store.get("ucb.cfg",{sons:true,musica:true,narra:false});
+let prog=store.get("ucb.prog",{unlocked:1});
+let B=null;
+const app=document.getElementById("app"),live=document.getElementById("live");
+let ac=null;
+function tone(seq){if(!window.AudioContext&&!window.webkitAudioContext)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();let t=ac.currentTime;seq.forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d);t+=d})}catch(e){}}
+function narrate(t){if(cfg.narra&&window.speechSynthesis){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="pt-BR";speechSynthesis.speak(u)}catch(e){}}}
+function say(t){live.textContent="";setTimeout(()=>live.textContent=t,50);narrate(t)}
+function render(title,html,speak){app.innerHTML=html;document.title=title+" – U.C. Battle";const h=app.querySelector("h1");if(h)h.focus();if(speak)narrate(speak)}
+const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+const hp=n=>"♥".repeat(Math.max(n,0))+"♡".repeat(Math.max(0,(n<0?0:0)));
+function menu(){
+B=null;
+const v=PVV.map((p,i)=>{const n=i+1,ok=n<=prog.unlocked;return `<li><button data-a="battle" data-v="${n}" ${ok?"":'disabled aria-label="Vilão '+n+' bloqueado"'}>${ok?"⚔":"🔒"} Vilão ${n}<br><small>${ok?"Vida do vilão: "+p:"Bloqueado"}</small></button></li>`}).join("");
+render("Menu principal",`<h1 tabindex="-1">U.C. Battle</h1><p>Você é um herói. Derrote os 5 vilões respondendo charadas sobre casos de uso. Não há limite de tempo.</p><h2>Vilões</h2><ul class="grid">${v}</ul><div class="row"><button data-a="train">🎓 Treinar com o mestre</button><button data-a="book">📖 Book</button><button data-a="how">❓ Como jogar</button><button data-a="opts">⚙ Opções</button></div>`,"Menu principal. Vilões desbloqueados: "+prog.unlocked+" de 5.");
+}
+function how(){render("Como jogar",`<h1 tabindex="-1">Como jogar</h1><div class="card"><p>Você começa com 4 pontos de vida (PV). Cada vilão tem PV diferentes: o primeiro tem 3 e cada novo vilão tem 1 a mais.</p><p>Cada charada tem 4 respostas e só uma está correta. Acertou: o vilão perde 1 PV. Errou: você perde 1 PV. Vence quem zerar o PV do adversário.</p><p>Uma vez por batalha, com 2 PV ou menos, você pode usar a habilidade para receber uma dica.</p><p>Teclado: Tab e Enter, ou as teclas 1 a 4 para responder.</p></div><button class="pri" data-a="menu">Voltar ao menu</button>`)}
+function start(v,train){B={v,train,hero:4,vil:train?0:PVV[v-1],used:false,done:false,answered:false,pool:[],cur:null};
+const lv=Math.min(3,1+Math.floor((v-1)/2));B.pool=shuffle(Q.filter(q=>train||q.l<=lv));B.all=B.pool.slice();next()}
+function next(){if(!B.pool.length)B.pool=shuffle(B.all);B.cur=B.pool.pop();B.answered=false;B.hint="";B.msg="";battle()}
+function battle(){
+const c=B.cur,t=B.train;
+const alts=c.o.map((o,i)=>`<button data-a="ans" data-i="${i}" ${B.answered?"disabled":""}>${i+1}. ${o}</button>`).join("");
+const can=!t&&B.hero<=2&&!B.used||t;
+const hab=`<button data-a="hab" aria-disabled="${!(can&&!B.answered)}" aria-describedby="habinfo">💡 Habilidade (dica)</button>`;
+const info=t?"No treino a dica é livre.":"Habilidade: 1 vez por batalha, com 2 PV ou menos.";
+render(t?"Treino":"Batalha",`<h1 tabindex="-1">${t?"Treino com o mestre":"Batalha contra o Vilão "+B.v}</h1>
+<div class="hud"><span>Herói: ${B.hero} PV <span aria-hidden="true">${"♥".repeat(B.hero)}</span></span>${t?"<span>Sem penalidades</span>":`<span>Vilão: ${B.vil} PV <span aria-hidden="true">${"♥".repeat(B.vil)}</span></span>`}</div>
+<div class="card"><h2 id="q">${c.q}</h2><div class="alts" role="group" aria-labelledby="q">${alts}</div><p class="msg" id="msg">${B.msg}</p><p id="hint">${B.hint}</p>${B.answered?`<button class="pri" data-a="nxt">${B.last==="end"?"Ver resultado":"Próxima charada"}</button>`:""}</div>
+<div class="row">${hab}<button data-a="${t?"menu":"give"}">${t?"Sair do treino":"🏳 Render-se"}</button></div><small id="habinfo">${info}</small>`,
+`${c.q} Alternativas: ${c.o.map((o,i)=>(i+1)+", "+o).join(". ")}`);
+}
+function ans(i){if(B.answered)return;const c=B.cur,ok=i===c.c;B.answered=true;
+if(B.train){B.msg=ok?"✔ Acertou! "+c.e:"✘ Errou, sem penalidade. Resposta correta: "+c.o[c.c]+". "+c.e}
+else{if(ok){B.vil--;B.msg="✔ Acertou! O vilão perdeu 1 PV."}else{B.hero--;B.msg="✘ Errou! Você perdeu 1 PV."}
+if(B.hero<=0||B.vil<=0)B.last="end"}
+if(cfg.sons)tone(ok?[[660,.12],[880,.15]]:[[300,.2],[200,.25]]);
+battle();say(B.msg);const n=app.querySelector('[data-a="nxt"]');if(n)n.focus()}
+function hab(){if(B.answered)return say("Responda ou avance antes de usar a habilidade.");
+if(!B.train){if(B.used)return say("Habilidade indisponível: já usada nesta batalha.");if(B.hero>2)return say("Habilidade indisponível: é preciso ter 2 PV ou menos.");B.used=true}
+const c=B.cur;B.hint="💡 Dica: "+c.h;document.getElementById("hint").textContent=B.hint;say(B.hint);document.querySelector('[data-a="hab"]').setAttribute("aria-disabled","true")}
+function end(win,give){const un=win&&B.v===prog.unlocked&&B.v<5;if(un){prog.unlocked++;store.set("ucb.prog",prog)}
+const m=win?(B.v===5?"Você derrotou todos os vilões e salvou seu mundo!":"Vitória! "+(un?"O Vilão "+prog.unlocked+" foi desbloqueado.":"")):(give?"Você se rendeu. Derrota.":"Derrota. Você terá que enfrentar este vilão novamente.");
+if(cfg.musica)tone(win?[[523,.15],[659,.15],[784,.15],[1047,.3]]:[[392,.2],[330,.2],[262,.4]]);
+render(win?"Vitória":"Derrota",`<h1 tabindex="-1">${win?"🏆 Vitória!":"💀 Derrota"}</h1><div class="card"><p>${m}</p></div><button class="pri" data-a="menu">Voltar ao menu principal</button>`,m)}
+function book(){render("Book",`<h1 tabindex="-1">Escolha uma história para ler</h1><div class="grid">${Object.keys(BOOK).map(k=>`<button data-a="story" data-k="${k}">${k}</button>`).join("")}</div><button data-a="menu">← Voltar ao menu principal</button>`)}
+function story(k,i){const p=BOOK[k],last=i>=p.length-1;
+render(k,`<h1 tabindex="-1">${k}</h1><div class="bub"><strong>${i%2?"Mestre":"Herói"}:</strong> ${p[i]}</div><p><small>Parte ${i+1} de ${p.length}</small></p><div class="row"><button data-a="book">← Voltar aos temas</button>${i>0?`<button data-a="story" data-k="${k}" data-i="${i-1}">Anterior</button>`:""}${last?"":`<button class="pri" data-a="story" data-k="${k}" data-i="${i+1}">Próximo</button>`}</div>`,(i%2?"Mestre: ":"Herói: ")+p[i])}
+function opts(){const r=(k,l)=>`<div class="card"><span>${l}</span> <button data-a="tg" data-k="${k}" aria-pressed="${cfg[k]}">${cfg[k]?"Ligado":"Desligado"}</button></div>`;
+render("Opções",`<h1 tabindex="-1">Opções</h1>${r("sons","Sons de acerto e erro")}${r("musica","Músicas de vitória e derrota")}${r("narra","Narração de perguntas, alternativas, dicas e book")}<div class="row"><button data-a="reset">Apagar progresso</button><button class="pri" data-a="menu">Voltar ao menu</button></div>`)}
+const act={menu,how,book,opts,
+battle:d=>start(+d.v,false),train:()=>start(1,true),ans:d=>ans(+d.i),hab,nxt:()=>B.last==="end"?end(B.vil<=0,false):next(),give:()=>end(false,true),
+story:d=>story(d.k,+(d.i||0)),
+tg:d=>{cfg[d.k]=!cfg[d.k];store.set("ucb.cfg",cfg);opts();const b=app.querySelector(`[data-k="${d.k}"]`);if(b)b.focus();say((cfg[d.k]?"Ligado":"Desligado"))},
+reset:()=>{prog={unlocked:1};store.set("ucb.prog",prog);say("Progresso apagado.")}};
+app.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||b.disabled)return;act[b.dataset.a]&&act[b.dataset.a](b.dataset)});
+document.addEventListener("keydown",e=>{if(B&&!B.answered&&/^[1-4]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey)ans(+e.key-1)});
+menu();
+</script>
+</body>
+</html>
